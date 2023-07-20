@@ -74,12 +74,11 @@ def train_model(X_train, y_train, model=1):
     regressor.fit(X_train, y_train)
     return regressor
 
-def evaluate_model(regressor, X_test, y_test, X):
+def evaluate_model(regressor, X_test, y_test):
     y_pred = regressor.predict(X_test)
-    y_plot = regressor.predict(X)
     score = regressor.score(X_test, y_test)  # Use X_test and y_test for scoring
     mse = mean_squared_error(y_true=y_test, y_pred=y_pred)
-    return score, mse, y_plot
+    return score, mse, y_test, y_pred
 
 def cross_val(regressor, X_train, y_train):
     cv_scores = cross_val_score(regressor, X_train, y_train, cv=5, scoring='r2')
@@ -87,17 +86,14 @@ def cross_val(regressor, X_train, y_train):
     std_cv_score = np.std(cv_scores)
     return cv_scores, mean_cv_score, std_cv_score
 
-def create_plot(df, y_plot):
-    actual_prices = df['Price']
-    df = pd.DataFrame({'Price': actual_prices, 'Predicted': y_plot})
-    df = df.sort_values(by='Price')
+def create_plot(y_test, y_pred):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df['Price'], y=df['Predicted'], mode='markers', name='Predicted'))
-    fig.add_trace(go.Scatter(x=df['Price'], y=df['Price'], mode='lines', name='Actual'))
+    fig.add_trace(go.Scatter(x=y_test.flatten(), y=y_pred, mode='markers', name='Predicted'))
+    fig.add_trace(go.Scatter(x=y_test.flatten(), y=y_test.flatten(), mode='lines', name='Actual'))
     fig.update_layout(title='Regression Model Results', xaxis_title='Actual Price', yaxis_title='Predicted Value')
     return fig
 
-def model(df_input, columns, model=1, scaled=True):
+def model(df_input, model=1, scaled=True):
     if df_input == 1:
         df = df
         columns = df_columns
@@ -110,7 +106,7 @@ def model(df_input, columns, model=1, scaled=True):
     X, y = set_Xy(df, columns)
     X_train, X_test, y_train, y_test = split_data(X, y, scaled=scaled)
     regressor = train_model(X_train, y_train, model=model)
-    score, mse, y_plot = evaluate_model(regressor, X_test, y_test, X)
+    score, mse, y_test, y_pred = evaluate_model(regressor, X_test, y_test)
     cv_scores, mean_cv_score, std_cv_score = cross_val(regressor, X_train, y_train)
-    fig = create_plot(df, y_plot)
+    fig = create_plot(y_test, y_pred)
     return regressor, score, mse, cv_scores, mean_cv_score, std_cv_score, fig

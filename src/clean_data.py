@@ -18,12 +18,12 @@ def convert_to_num(df):
     """
     columns_to_float = ['Price', 'Postalcode', 'Construction year', 'Bedroom count', 'Facades']
     for column in columns_to_float:
-        if df[columns_to_float].dtype == 'object':
-            df[columns_to_float] = df[columns_to_float].str.replace('\D', '', regex=True)  # Remove non-numeric characters
-            df = df[df[columns_to_float] != '']  # Drop rows with empty values
-            df[columns_to_float] = df[columns_to_float].astype('float64')  # Convert column to integers
+        if df[column].dtype == 'object':
+            df[column] = df[column].str.replace('\D', '', regex=True)  # Remove non-numeric characters
+            df = df[df[column] != '']  # Drop rows with empty values
+            df[column] = df[column].astype('float64')  # Convert column to integers
         else:
-            df[columns_to_float] = df[columns_to_float].astype('float64')  # Convert numeric column to integers
+            df[column] = df[column].astype('float64')  # Convert numeric column to integers
     print(f'Df rows after step 1: {df.shape[0]}\n{df.info()}')
     return df
     
