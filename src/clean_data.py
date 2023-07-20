@@ -1,12 +1,14 @@
+import sys
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OrdinalEncoder
-def import_data(path):
-    file_path = r'c:\Users\samve\OneDrive\0BeCode\repos\immo-data-processing\Data\Filtered_Data\house_details_v1.csv'
-    df = pd.read_csv(file_path, index_col='id', skip_blank_lines=True)
-    return df
-
+sys.path.insert(0, '../')
+import numpy as np
+#file_path = r'c:\Users\samve\OneDrive\0BeCode\repos\immo-data-processing\Data\Filtered_Data\house_details_v1.csv'
+#df = pd.read_csv(file_path, index_col='id', skip_blank_lines=True)
+drop_columns=[
+            'Street', 'Housenumber', 'Box', 'City', 'Subtype', 'Location area', 'Region', 
+            'District', 'Province', 'Type of sale', 'Garden', 'Kitchen type', 'EPC score', 'Latitude',
+            'Longitude', 'Property url'
+            ]
 def convert_to_num(df):
     """
     Converts any column from the given dataframe into numerical datatype so it can be further preprocessed or
@@ -16,12 +18,12 @@ def convert_to_num(df):
     """
     columns_to_float = ['Price', 'Postalcode', 'Construction year', 'Bedroom count', 'Facades']
     for column in columns_to_float:
-        if df[column].dtype == 'object':
-            df[column] = df[column].str.replace('\D', '', regex=True)  # Remove non-numeric characters
-            df = df[df[column] != '']  # Drop rows with empty values
-            df[column] = df[column].astype('float64')  # Convert column to integers
+        if df[columns_to_float].dtype == 'object':
+            df[columns_to_float] = df[columns_to_float].str.replace('\D', '', regex=True)  # Remove non-numeric characters
+            df = df[df[columns_to_float] != '']  # Drop rows with empty values
+            df[columns_to_float] = df[columns_to_float].astype('float64')  # Convert column to integers
         else:
-            df[column] = df[column].astype('float64')  # Convert numeric column to integers
+            df[columns_to_float] = df[columns_to_float].astype('float64')  # Convert numeric column to integers
     print(f'Df rows after step 1: {df.shape[0]}\n{df.info()}')
     return df
     
@@ -99,34 +101,19 @@ def remove_outliers(df):
     df = df[df['Bedroom count'] <= 10]
     print(f'Number of rows (listings) final df: {df.shape[0]}')
     return df
-def encode_column(df):
-    # Define the order of the conditions
-    condition_order = ['AS_NEW', 'GOOD', '0', 'JUST_RENOVATED', 'TO_RENOVATE', 'TO_BE_DONE_UP', 'TO_RESTORE']
-    # Use OrdinalEncoder to transform the 'Condition' column
-    encoder = OrdinalEncoder(categories=[condition_order])
-    df['Condition'] = encoder.fit_transform(df[['Condition']])
-    return df
 
-def dummies(df, columns_to_dum):
-    if columns_to_dum != []:
-        for column_dum in columns_to_dum:
-            dummies = pd.get_dummies(df[column_dum], dtype=int)
-            df = pd.concat([df, dummies], axis='columns')
-            df.drop(columns=[column_dum, dummies.columns[0]], inplace=True)
-    return df
-def drop_columns(df, columns):
+def drop_columns_df(df):
     """
 
     Drops all columns that are not needed for the model to run.
-    Small increase in speed to be expected.
 
     Returns: df
     
     """
-    df = df.drop(columns= columns)
+    df = df.drop(columns= drop_columns)
     return df
 
-def run_cleanup(df, columns, columns_to_dum= []):
+def run_cleanup(df):
     """
     Main function to call upon all functions in order to clean the given dataframe
     Returns:
@@ -137,7 +124,6 @@ def run_cleanup(df, columns, columns_to_dum= []):
     df = remove_duplicates(df)
     df = remove_outliers(df)
     df = trans_to_bool(df)
-    df = encode_column(df)
-    df = drop_columns(df, columns)
-    df = dummies(df, columns_to_dum)
-    return df
+    df = drop_columns_df(df)
+    df_house, df_apt = split_df_on_type(df)   
+    return df, df_house, df_apt
