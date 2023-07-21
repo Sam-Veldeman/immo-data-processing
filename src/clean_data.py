@@ -16,12 +16,14 @@ def convert_to_num(df):
 
     Returns: df
     """
-    columns_to_float = ['Price', 'Postalcode', 'Construction year', 'Bedroom count', 'Facades']
+    columns_to_float = ['Price', 'Postalcode', 'Construction year', 'Bedroom count', 'Facades', 'Kitchen equipped']
     for column in columns_to_float:
         if df[column].dtype == 'object':
             df[column] = df[column].str.replace('\D', '', regex=True)  # Remove non-numeric characters
             df = df[df[column] != '']  # Drop rows with empty values
             df[column] = df[column].astype('float64')  # Convert column to integers
+        elif df[column].dtype == 'bool':
+            df[column] = df[column].astype('int64')
         else:
             df[column] = df[column].astype('float64')  # Convert numeric column to integers
     print(f'Df rows after step 1: {df.shape[0]}\n{df.info()}')
@@ -67,7 +69,7 @@ def trans_to_bool(df):
     Returns: df
 
     """
-    df['Kitchen equiped'] = df['Kitchen type'].apply(lambda x: 1 if x !=0 else 0).astype('bool') #create a new column as boolean.
+    df['Kitchen equipped'] = df['Kitchen type'].apply(lambda x: True if x != '0' else False).astype('bool') #create a new column as boolean.
     df['Furnished'] = df['Furnished'].apply(lambda x: 1 if x != 0 else 0).astype('bool') #transform column to boolean.
     df['Fireplace'] = df['Fireplace'].apply(lambda x: 1 if x != 0 else 0).astype('bool') #transform column to boolean.
     df['SwimmingPool'] = df['SwimmingPool'].apply(lambda x: 1 if x != 0 else 0).astype('bool') #transform column to boolean.
@@ -119,11 +121,12 @@ def run_cleanup(df):
     Returns:
         int: The version number of the CSV file.
     """
+    df = trans_to_bool(df)
     df = convert_to_num(df)
     df = drop_zero_rows(df)
     df = remove_duplicates(df)
     df = remove_outliers(df)
-    df = trans_to_bool(df)
+    
     df = drop_columns_df(df)
     df_house, df_apt = split_df_on_type(df)   
     return df, df_house, df_apt
