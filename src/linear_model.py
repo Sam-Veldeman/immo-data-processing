@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(0, '../')
 import os
+import pickle
 import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
@@ -13,15 +14,24 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import cross_val_score
 file_path = r'c:\Users\samve\OneDrive\0BeCode\repos\immo-data-processing\Data\house_details_v1.csv'
 df = pd.read_csv(file_path, index_col='id', skip_blank_lines=True)
-df_cleaned, df_house, df_apt= run_cleanup(df)
-df_columns = [
-            'Habitable surface', 'Bedroom count', 'Postalcode', 'Terrace surface', 'Garden surface', 'Kitchen equipped',
-            'Construction year', 'Total surface', 'Garden surface', 'Facades'
-            ]
-house_columns = ['Habitable surface', 'Bedroom count', 'Terrace surface', 'Garden surface', 'Kitchen equipped', 'Facades', 'Postalcode']
-apt_columns = ['Habitable surface', 'Bedroom count', 'Terrace surface', 'Kitchen equipped', 'Floor', 'Postalcode']
-
-def set_Xy(df, columns):
+df, df_house, df_apt= run_cleanup(df)
+df_cleaned= df
+df_apt= df_apt.drop(columns= [
+            'Type', 'Garden surface', 'SwimmingPool', 'Condition', 'Postalcode', 'Street', 'Housenumber',
+            'Box', 'City', 'Subtype', 'Location area', 'Region', 'District', 'Province', 'Type of sale',
+            'Garden', 'Kitchen type', 'EPC score', 'Latitude', 'Longitude', 'Property url'
+            ])
+df_house= df_house.drop(columns= [
+            'Type', 'Floor', 'Condition', 'Postalcode', 'Floor', 'Street', 'Housenumber', 'Box', 'City', 'Subtype',
+            'Location area', 'Region', 'District', 'Province', 'Type of sale', 'Garden', 'Kitchen type',
+            'EPC score', 'Latitude','Longitude', 'Property url'
+            ])
+df_cleaned= df_cleaned.drop(columns=[
+            'Type', 'Postalcode', 'Condition', 'Street', 'Housenumber', 'Box', 'City', 'Subtype', 'Location area',
+            'Region', 'District', 'Province', 'Type of sale', 'Garden', 'Kitchen type', 'EPC score', 'Latitude',
+            'Longitude', 'Property url'
+            ])
+def set_Xy(df):
     """
     Sets the variables X and y on a given DataFrame and selection of columns.
     
@@ -35,13 +45,9 @@ def set_Xy(df, columns):
         y_train (np.ndarray): Numpy array containing the target variable for training.
         y_split (np.ndarray): Numpy array containing the target variable for testing.
     """
-    X = df[columns].to_numpy()
-    if X.shape[0] == 1:
-        X = X.reshape(-1,1)
-        X = np.hstack((X, ones))
-    else:
-        ones = np.ones((X.shape[0],1))
-        X = np.hstack((X, ones))
+    X = df.drop(columns=['Price']).to_numpy()
+    ones = np.ones((X.shape[0],1))
+    X = np.hstack((X, ones))
     y = df[['Price']].to_numpy().reshape(-1,1)
     return X, y
 
@@ -237,7 +243,7 @@ def get_df_input():
                 return df_choice
         print("Invalid input. Please enter 1, 2, or 3.")
 
-def get_save_input(fig):
+def get_save_input(fig, regressor, model_name):
     """
     Gets user input for choosing whether to save the plot as an HTML file.
 
@@ -251,6 +257,15 @@ def get_save_input(fig):
         save_choice = input("Do you want to save the plot as an HTML file? (y/n): ").lower()
         if save_choice == 'y':
             save_plot(fig)
+            break
+        elif save_choice == 'n':
+            break
+        else:
+            print("Invalid input. Please enter 'y' or 'n'.")
+    while True:
+        save_choice = input("Do you want to save the model as a pickle file? (y/n): ").lower()
+        if save_choice == 'y':
+            save_model(regressor, model_name)
             break
         elif save_choice == 'n':
             break
@@ -273,14 +288,37 @@ def select_df(df_input):
     """
     if df_input == 1:
         df = df_cleaned
-        columns = df_columns
+        model_name= 'df_cleaned'
     elif df_input == 2:
         df = df_house
-        columns = house_columns
+        model_name= 'df_house'
     else:
         df = df_apt
-        columns = apt_columns
-    return df, columns
+        model_name= 'df_apt'
+    return df, model_name
+
+def save_model(regressor, model_name):
+    """
+    Save the trained model to a file using pickle.
+
+    Parameters:
+        regressor: Trained machine learning model.
+        model_name (str): Name of the model to be saved (e.g., 'df', 'df_house', 'df_apt').
+
+    Returns:
+        None
+    """
+    save_path = './models/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    model_filename = os.path.join(save_path, f"{model_name}.pkl")
+    
+    try:
+        with open(model_filename, "wb") as file:
+            pickle.dump(regressor, file)
+        print(f"Trained {model_name} model saved as: {model_filename}")
+    except Exception as e:
+        print(f"Error saving the model: {e}")
 
 def model(df_input, model=1, scaled=True):
     """
@@ -305,12 +343,12 @@ def model(df_input, model=1, scaled=True):
         std_cv_score (float): Standard deviation of the cross-validation scores.
         fig: Plotly Figure object containing the interactive scatter plot.
     """
-    df, columns= select_df(df_input)
-    X, y = set_Xy(df, columns)
+    df, model_name= select_df(df_input)
+    X, y = set_Xy(df)
     X_train, X_test, y_train, y_test = split_data(X, y, scaled=scaled)
     regressor = train_model(X_train, y_train, model=model)
     score, mse, y_pred = evaluate_model(regressor, X_test, y_test)
     cv_scores, mean_cv_score, std_cv_score = cross_val(regressor, X_train, y_train)
     fig = create_plot(y_test, y_pred)
-    get_save_input(fig)
-    return regressor, score, mse, cv_scores, mean_cv_score, std_cv_score, fig
+    get_save_input(fig, regressor, model_name)
+    return score, mse, cv_scores, mean_cv_score, std_cv_score, fig
