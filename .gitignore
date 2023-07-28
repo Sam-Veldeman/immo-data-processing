@@ -160,3 +160,8 @@ cython_debug/
 #.idea/
 Presentation/
 spare_functions.ipynb
+immo-model-Sam*
+/Data/BELGIUM_-_Municipalities.csv
+**/Testbook*
+*/app_try.py
+train_save_best_model.py
