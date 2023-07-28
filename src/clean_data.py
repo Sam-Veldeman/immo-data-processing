@@ -1,12 +1,13 @@
 import sys
 import pandas as pd
+import numpy as np
 sys.path.insert(0, '../')
 from sklearn.preprocessing import OneHotEncoder
 
 drop_columns=[
-            'Street', 'Housenumber', 'Box', 'City', 'Subtype', 'Location area', 'Region', 
-            'District', 'Province', 'Type of sale', 'Garden', 'Kitchen type', 'EPC score', 'Latitude',
-            'Longitude', 'Property url'
+            'Street', 'Housenumber', 'Box', 'City', 'Subtype', 'Location_area', 'Region', 
+            'District', 'Province', 'Type_of_sale', 'Garden', 'Kitchen_type', 'EPC_score', 'Latitude',
+            'Longitude', 'Property_url'
             ]
 
 def trans_to_bool(df):
@@ -20,11 +21,10 @@ def trans_to_bool(df):
 
     """
     print('Step 1 trans_to_bool:')
-    df['Kitchen equipped'] = df['Kitchen type'].apply(lambda x: True if x != '0' else False).astype('bool') #create a new column as boolean.
+    df['Kitchen_equipped'] = df['Kitchen_type'].apply(lambda x: True if x != '0' else False).astype('bool') #create a new column as boolean.
     df['Furnished'] = df['Furnished'].apply(lambda x: 1 if x != 0 else 0).astype('bool') #transform column to boolean.
     df['Fireplace'] = df['Fireplace'].apply(lambda x: 1 if x != 0 else 0).astype('bool') #transform column to boolean.
-    df['SwimmingPool'] = df['SwimmingPool'].apply(lambda x: 1 if x != 0 else 0).astype('bool') #transform column to boolean.
-    df['Terrace'] = ((df['Terrace'] == True) | (df['Terrace surface'] > 0)).astype('bool') #transform column to boolean, if any condition is True: value will be 1.
+    df['Terrace'] = ((df['Terrace'] == True) | (df['Terrace_surface'] > 0)).astype('bool') #transform column to boolean, if any condition is True: value will be 1.
     print(f'Df rows after step 1: {df.shape[0]}')
     return df
 
@@ -36,7 +36,7 @@ def convert_to_num(df):
     Returns: df
     """
     print('Step 2 convert_to_num:')
-    columns_to_float = ['Price', 'Construction year', 'Postalcode', 'Bedroom count', 'Facades', 'Kitchen equipped']
+    columns_to_float = ['Price', 'Construction_year', 'Postalcode', 'Bedroom_count', 'Facades', 'Kitchen_equipped']
     for column in columns_to_float:
         if df[column].dtype == 'object':
             df[column] = df[column].str.replace('\D', '', regex=True)  # Remove non-numeric characters
@@ -52,6 +52,7 @@ def convert_to_num(df):
 def clean_postalcodes(df):
     """
     Removes all postalcodes above 9992 (= max number Belgian postalcodes)
+    Reset the Postalcode column to str datatype, so the OneHotEncoder will handle it correctly.
     
     Parameters:
         df (pd.DataFrame): Input DataFrame containing the data
@@ -61,6 +62,8 @@ def clean_postalcodes(df):
     """
     print('Step 3 clean_postalcodes:')
     df= df[df['Postalcode'] < 9993]
+    df.loc[:, 'Postalcode'] = df['Postalcode'].astype('str')
+    #df['Postalcode']= df['Postalcode'].astype('str')
     print(f'Df rows after step 3: {df.shape[0]}')
     return df
 
@@ -72,7 +75,7 @@ def drop_zero_rows(df):
 
     """
     print('Step 4 drop_zero_rows:')
-    columns_to_check = ['City', 'Price', 'Habitable surface']
+    columns_to_check = ['City', 'Price', 'Habitable_surface']
     for column in columns_to_check:
         if df[column].dtype == 'object':
             df = df[df[column] != '0']
@@ -92,9 +95,9 @@ def remove_duplicates(df):
         
     """
     print('Step 5 remove_duplicates:')
-    duplicates = df[df.duplicated(subset=['Latitude', 'Longitude', 'Type', 'Subtype', 'Price', 'District', 'City', 'Street', 'Housenumber', 'Box', 'Floor', 'Habitable surface'], keep=False)]
+    duplicates = df[df.duplicated(subset=['Latitude', 'Longitude', 'Type', 'Subtype', 'Price', 'District', 'City', 'Street', 'Housenumber', 'Box', 'Floor', 'Habitable_surface'], keep=False)]
     print(f'Amount of duplicates: {duplicates.shape[0]}')
-    df = df.drop_duplicates(subset=['Latitude', 'Longitude', 'Type', 'Subtype', 'Price', 'District', 'City', 'Street', 'Housenumber', 'Box', 'Floor', 'Habitable surface'], keep='first')
+    df = df.drop_duplicates(subset=['Latitude', 'Longitude', 'Type', 'Subtype', 'Price', 'District', 'City', 'Street', 'Housenumber', 'Box', 'Floor', 'Habitable_surface'], keep='first')
     print(f'Amount of rows after step 5: {df.shape[0]}')
     return df
 
@@ -106,10 +109,10 @@ def remove_outliers(df):
     
     """
     print('Step 6 remove_outliers:')
-    df = df[df['Habitable surface'] <= 2000]
+    df = df[df['Habitable_surface'] <= 2000]
     df = df[df['Price'] <= 4000000]
-    df = df[df['Terrace surface'] <= 250]
-    df = df[df['Bedroom count'] <= 10]
+    df = df[df['Terrace_surface'] <= 250]
+    df = df[df['Bedroom_count'] <= 10]
     print(f'Amount of rows after step 6: {df.shape[0]}')
     return df
 
@@ -196,12 +199,6 @@ def split_df_on_type(df):
     print(f'Amount of rows in df_apt: {df_apt.shape[0]}')
     return df_house, df_apt
 
-
-
-
-
-
-    
 def run_cleanup(df):
     """
     Main function to call upon all functions in order to clean the given dataframe

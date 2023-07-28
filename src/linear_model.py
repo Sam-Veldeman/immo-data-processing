@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(0, '../')
 import os
+import joblib
 import pickle
 import numpy as np
 import plotly.graph_objects as go
@@ -8,7 +9,7 @@ import pandas as pd
 import xgboost as xgb
 from src.clean_data import run_cleanup
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import cross_val_score
@@ -17,19 +18,20 @@ df = pd.read_csv(file_path, index_col='id', skip_blank_lines=True)
 df, df_house, df_apt= run_cleanup(df)
 df_cleaned= df
 df_apt= df_apt.drop(columns= [
-            'Type', 'Garden surface', 'SwimmingPool', 'Condition', 'Postalcode', 'Street', 'Housenumber',
-            'Box', 'City', 'Subtype', 'Location area', 'Region', 'District', 'Province', 'Type of sale',
-            'Garden', 'Kitchen type', 'EPC score', 'Latitude', 'Longitude', 'Property url'
+            'Type', 'Garden_surface', 'SwimmingPool', 'Condition', 'Postalcode', 'Street', 'Housenumber',
+            'Box', 'City', 'Subtype', 'Location_area', 'Region', 'District', 'Province', 'Type_of_sale',
+            'Garden', 'Kitchen_type', 'EPC_score', 'Latitude', 'Longitude', 'Property_url'
             ])
 df_house= df_house.drop(columns= [
             'Type', 'Floor', 'Condition', 'Postalcode', 'Floor', 'Street', 'Housenumber', 'Box', 'City', 'Subtype',
-            'Location area', 'Region', 'District', 'Province', 'Type of sale', 'Garden', 'Kitchen type',
-            'EPC score', 'Latitude','Longitude', 'Property url'
+            'Location_area', 'Region', 'District', 'Province', 'Type_of_sale', 'Garden', 'Kitchen_type',
+            'EPC_score', 'Latitude','Longitude', 'Property_url'
             ])
 df_cleaned= df_cleaned.drop(columns=[
-            'Type', 'Postalcode', 'Condition', 'Street', 'Housenumber', 'Box', 'City', 'Subtype', 'Location area',
-            'Region', 'District', 'Province', 'Type of sale', 'Garden', 'Kitchen type', 'EPC score', 'Latitude',
-            'Longitude', 'Property url'
+            'Condition', 'Street', 'Housenumber', 'Box', 'City', 'Subtype', 'Location_area',
+            'District', 'Type_of_sale', 'Garden', 'Kitchen_type', 'EPC_score', 'Latitude',
+            'Longitude', 'Property_url', 'Floor', 'Furnished', 'Fireplace', 'Terrace_surface',
+            'SwimmingPool'
             ])
 def set_Xy(df):
     """
@@ -37,40 +39,41 @@ def set_Xy(df):
     
     Parameters:
         df (pd.DataFrame): Input DataFrame containing the data.
-        columns (list): List of column names to select as features for X.
-
+        
     Returns:
-        X_train (np.ndarray): Numpy array containing the feature variables for training.
-        X_split (np.ndarray): Numpy array containing the feature variables for testing.
-        y_train (np.ndarray): Numpy array containing the target variable for training.
-        y_split (np.ndarray): Numpy array containing the target variable for testing.
+        X (pd.DataFrame): All columns from df, without the target column ('Price')
+        y (pd.DataFrame): Only the target column ('Price')
     """
-    X = df.drop(columns=['Price']).to_numpy()
-    ones = np.ones((X.shape[0],1))
-    X = np.hstack((X, ones))
-    y = df[['Price']].to_numpy().reshape(-1,1)
+    X = df.drop(columns=['Price'], axis=1)
+    y = df[['Price']]
     return X, y
 
-def split_data(X, y, scaled=True):
-    """
-    Splits the data into training and testing sets.
+def split_data(X, y, df):
+    cat_cols= ['Type', 'Postalcode', 'Region', 'Province']
+    num_cols= ['Construction_year', 'Total_surface', 'Habitable_surface', 'Bedroom_count', 'Terrace', 'Garden_surface', 'Facades', 'Kitchen_equipped', 'Condition_encoded']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=22)
 
-    Parameters:
-        X (np.ndarray): Feature variables for the dataset.
-        y (np.ndarray): Target variable for the dataset.
-        scaled (bool, optional): Whether to scale the data using MinMaxScaler. Default is True.
+    encoder = OneHotEncoder(handle_unknown='ignore')
+    X_train_enc = encoder.fit_transform(X_train[cat_cols])
+    X_test_enc = encoder.transform(X_test[cat_cols])
 
-    Returns:
-        X_train (np.ndarray): Numpy array containing the scaled feature variables for training.
-        X_split (np.ndarray): Numpy array containing the scaled feature variables for testing.
-        y_train (np.ndarray): Numpy array containing the target variable for training.
-        y_split (np.ndarray): Numpy array containing the target variable for testing.
-    """
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=123)
-    if scaled == True:
-        scaler = MinMaxScaler()
-        X_train = scaler.fit_transform(X_train)
-        X_test = scaler.transform(X_test)
+    joblib.dump(encoder, '/users/samve/OneDrive/0BeCode/repos/immo-data-processing/models/encoder.joblib')
+
+    scaler = MinMaxScaler()
+    X_train_scale = scaler.fit_transform(X_train[num_cols])
+    X_test_scale = scaler.transform(X_test[num_cols])
+
+    joblib.dump(scaler, '/users/samve/OneDrive/0BeCode/repos/immo-data-processing/models/scaler.joblib')
+
+    encoded_columns = encoder.get_feature_names_out(input_features=cat_cols)
+    X_train_enc_df = pd.DataFrame(X_train_enc.toarray(), columns=encoded_columns)
+    X_test_enc_df = pd.DataFrame(X_test_enc.toarray(), columns=encoded_columns)
+
+    X_train_merged = pd.concat([pd.DataFrame(X_train_scale, columns=num_cols), X_train_enc_df], axis=1)
+    X_test_merged = pd.concat([pd.DataFrame(X_test_scale, columns=num_cols), X_test_enc_df], axis=1)
+
+    X_test= X_test_merged.dropna()
+    X_train= X_train_merged.dropna()
     return X_train, X_test, y_train, y_test
 
 def train_model(X_train, y_train, model=1):
@@ -88,7 +91,8 @@ def train_model(X_train, y_train, model=1):
         regressor: Trained machine learning model.
     """
     if model == 1:
-        regressor = xgb.XGBRegressor(booster='gbtree', objective="reg:squarederror", random_state=123, n_estimators=2000, learning_rate=0.02, max_depth=6)
+        regressor = xgb.XGBRegressor(missing= 0, booster='gbtree', objective="reg:squarederror", random_state=123, n_estimators=1000, learning_rate=0.1, max_depth=9, min_child_weight= 3, gamma= 0.0, colsample_bytree=0.3)       
+    #'colsample_bytree': 0.3, 'gamma': 0.0, 'learning_rate': 0.1, 'max_depth': 9, 'min_child_weight': 3
     elif model == 2:
         regressor = LinearRegression()
     regressor.fit(X_train, y_train)
@@ -208,21 +212,6 @@ def get_model_input():
                 return model_number
         print("Invalid input. Please enter 1 or 2.")
 
-def get_scaled_input():
-    """
-    Gets user input for choosing whether to scale the data.
-
-    Returns:
-        scaled (bool): True if data is to be scaled, False otherwise (default is True).
-    """
-    while True:
-        scale_input = input("Do you want to scale the data? (y/n) [Default is y]: ")
-        if not scale_input:
-            return True
-        elif scale_input.lower() in ['y', 'n']:
-            return True if scale_input.lower() == 'y' else False
-        print("Invalid input. Please enter 'y' or 'n'.")
-
 def get_df_input():
     """
     Gets user input for choosing the DataFrame (houses, apartments, or entire DataFrame).
@@ -243,7 +232,7 @@ def get_df_input():
                 return df_choice
         print("Invalid input. Please enter 1, 2, or 3.")
 
-def get_save_input(fig, regressor, model_name):
+def get_save_input(regressor, model_name):
     """
     Gets user input for choosing whether to save the plot as an HTML file.
 
@@ -253,15 +242,7 @@ def get_save_input(fig, regressor, model_name):
     Returns:
         None
     """
-    while True:
-        save_choice = input("Do you want to save the plot as an HTML file? (y/n): ").lower()
-        if save_choice == 'y':
-            save_plot(fig)
-            break
-        elif save_choice == 'n':
-            break
-        else:
-            print("Invalid input. Please enter 'y' or 'n'.")
+    
     while True:
         save_choice = input("Do you want to save the model as a pickle file? (y/n): ").lower()
         if save_choice == 'y':
@@ -271,7 +252,6 @@ def get_save_input(fig, regressor, model_name):
             break
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
-
 def select_df(df_input):
     """
     Selects the appropriate DataFrame based on the user's choice.
@@ -308,7 +288,7 @@ def save_model(regressor, model_name):
     Returns:
         None
     """
-    save_path = './models/'
+    save_path = '/users/samve/OneDrive/0BeCode/repos/immo-data-processing/models/'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     model_filename = os.path.join(save_path, f"{model_name}.pkl")
@@ -319,8 +299,8 @@ def save_model(regressor, model_name):
         print(f"Trained {model_name} model saved as: {model_filename}")
     except Exception as e:
         print(f"Error saving the model: {e}")
-
-def model(df_input, model=1, scaled=True):
+            
+def model(df_input, model=1):
     """
     Performs the entire modeling process based on user input.
 
@@ -345,10 +325,10 @@ def model(df_input, model=1, scaled=True):
     """
     df, model_name= select_df(df_input)
     X, y = set_Xy(df)
-    X_train, X_test, y_train, y_test = split_data(X, y, scaled=scaled)
+    X_train, X_test, y_train, y_test= split_data(X, y, df)
     regressor = train_model(X_train, y_train, model=model)
     score, mse, y_pred = evaluate_model(regressor, X_test, y_test)
     cv_scores, mean_cv_score, std_cv_score = cross_val(regressor, X_train, y_train)
-    fig = create_plot(y_test, y_pred)
-    get_save_input(fig, regressor, model_name)
-    return score, mse, cv_scores, mean_cv_score, std_cv_score, fig
+    #fig = create_plot(y_test, y_pred)
+    get_save_input(regressor, model_name)
+    return score, mse, cv_scores, mean_cv_score, std_cv_score
