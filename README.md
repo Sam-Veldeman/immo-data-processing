@@ -114,6 +114,12 @@ To create an image using docker:
 You are free to change the name of the docker image to whatever suits you.
 Wait for the image to be built and then create a container with the image.
 
+To run the docker image as a container:  
+
+   `bas
+   docker run property_price_prediction
+`  
+Make sure the image name is identical to the previous command.  
 ## 4.4 **Render:**
 
 
