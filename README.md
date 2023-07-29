@@ -87,9 +87,10 @@ Since we want to deploy an API, the model, scaler and encoder (OneHotEncoder) ar
 ### 4.2 **For the API:**
   
    To run the FastAPI, navigate to this repo's root folder in your terminal and enter the following command:  
-   `bash
-   uvicorn app:app --reload
-`  
+
+```bash
+uvicorn app:app --reload
+```  
 
    The code for the FastAPI can be found in app.py. (root folder)  
    The file calls the functions for the preprocessing and prediction in the src folder.  
@@ -109,12 +110,17 @@ To create an image using docker:
     - Be sure to have docker installed on your system.
     - In your terminal, navigate to the root folder of this repo and enter the following command:
 
-`bash
-   docker build . -t property_price_prediction
-`  
+```bash
+docker build . -t property_price_prediction
+```  
 
 You are free to change the name of the docker image to whatever suits you.
-Wait for the image to be built and then create a container with the image.
+Wait for the image to be built and then create a container with the image.  
+Use this command to run the container.
+
+```bash
+docker run property_price_prediction
+```  
 
 ## 4.4 **Render:**
 
