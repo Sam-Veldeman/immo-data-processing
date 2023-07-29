@@ -6,9 +6,9 @@
 
    This project is created as a consolidation project inside the group webscrape project 'challenge data analysis'.  
    It is a learning project for students at BeCode.org for the AI bootcamp.  
-   The aim is to learn how to clean, analyze, and visually output the data that was retrieved via the webscraper described in the challenge data analysis repo.  
+   The aim is to learn how to clean, analyze, and visually output the data that was retrieved via the web scrape described in the challenge data analysis repo.  
    Instead of working as a group, the analysis part and creation of the pipeline to predict property prices were made a solo challenge.  
-   In this repo, you will find a Jupyter notebook containing all steps I made to visually present my conclusions on the dataset and how the creation of the pipeline to predict the prices came to be.  
+   In this repo, you will find a Jupyter notebook containing all steps I made to visually present my conclusions on the dataset and how the creation of the pipeline to predict the prices was created.  
 
 ### 2. **Installation**
 
@@ -45,7 +45,7 @@
 
    Now that we have a working model, it is time to deploy:  
       -Pickle: Since we should not keep re-training the model every time it is used to predict a price, I will store the model in a .pkl file. For this I will use the pickle library.  
-      -FastAPI: Now it is time to set up the app.py file to get an API (application programming interface) up and running localy with uvicorn.  
+      -FastAPI: Now it is time to set up the app.py file to get an API (application programming interface) up and running locally with uvicorn.  
       -Docker: We have tested the get and post request using a local API, it is time to put the whole package together in a docker file. This way, the Immo-Elizza price predictor can be rendered anywhere.  
       -Render: As a final touch, the docker file is rendered on  [Render.com](https://render.com/)  
 
@@ -65,7 +65,7 @@
 
 #### Explanation for the syntax
 
-- `df_choce`: Optional integer input (1 = df_cleaned, 2 = df_house, 3 = df_apt) to select the dataframe to use. Standard option = 1  
+- `df_choice`: Optional integer input (1 = df_cleaned, 2 = df_house, 3 = df_apt) to select the dataframe to use. Standard option = 1  
 - `model`: Optional input for model number (1 = XGBoost, 2 = LinearRegression) Standard option = 1  
 
 Calling the script from main.py will ask for user input to set the choice of model and the dataframe to be used.  
@@ -82,6 +82,8 @@ Simply run the main.py file and the script for the pipeline will commence.
 The output will come as an informational printout, and a scatterplot will be generated to visualize the models results.  
 Since we want to deploy an API, the model, scaler and encoder (OneHotEncoder) are saved in the /models folder as pickle/joblib files.  
 
+![Alt text](<output/XGB model score.png>)
+
 ### 4.2 **For the API:**
   
    To run the FastAPI, navigate to this repo's root folder in your terminal and enter the following command:  
@@ -95,7 +97,7 @@ Since we want to deploy an API, the model, scaler and encoder (OneHotEncoder) ar
    For the API the choice was made to run with XGBoost model and the df_clean DataFrame.  
    This combination got the best results in predicting the price.  
    The root folder (get '/') will return a string of requirements.  
-   To recieve a price prediction u can:  
+   To receive a price prediction u can:  
 
 - Go to the /predict/ folder and send a curl POST request with the json dictionary in the format explained in the root. (or use an app like Postman)  
 - Navigate to the /docs page and click on the predict function and then try out. Fill in valid values for the json dictionary and click execute.  
@@ -107,8 +109,8 @@ To create an image using docker:
     - Be sure to have docker installed on your system.
     - In your terminal, navigate to the root folder of this repo and enter the following command:
 
-   `bash
-      docker build . -t property_price_prediction
+`bash
+   docker build . -t property_price_prediction
 `  
 
 You are free to change the name of the docker image to whatever suits you.
@@ -116,7 +118,7 @@ Wait for the image to be built and then create a container with the image.
 
 ## 4.4 **Render:**
 
-https://immo-property-price-prediction.onrender.com/
+<https://immo-property-price-prediction.onrender.com/>  
 
 The render is online on a free subscription so if link does not work, it is offline...
 
@@ -138,12 +140,12 @@ The render is online on a free subscription so if link does not work, it is offl
 
 - Be able to apply a regression in a real context.
 - Be able to preprocess data for machine learning.
-- Be able to analize the results of a machine learning model.
+- Be able to analyze the results of a machine learning model.
 - You have to handle NaNs.
 - You have to handle categorical data.
 - You have to select features and preprocess them as needed.
 - You have to remove features that have too strong correlation.
-- You have to evaluate your models performance with an appropiate metric
+- You have to evaluate your models performance with an appropriate metric
 
 ### Part 3 of this project was started on 26/07/2023 09:00 and had a deadline set for 28/07/2023 16:00 (3 days)
 
@@ -155,16 +157,23 @@ The render is online on a free subscription so if link does not work, it is offl
 
 ## 6.**Personal notes**
 
-   This project was a very big step into the world of data analyses for me.
+   This project was a very big step into the world of data analysis for me.
    The data analysis for this project was overwhelming at first, but I got better at it, once I started using the data as features for my model.
    I managed to create a model using simple features from the data.
    In the near future, I will try to add some more features from using sklearn's OneHotEncoder, pandas get_dummies(), or even external sources.
    For now, I'm happy with the achievements I made this far.
 
+   **edit after final week:**  
+
+   When finishing this project, I did manage to use the OneHotEncoder on the categorical data used for the model training.  
+   Also, a MinMaxScaler is applied to improve the model's accuracy.
+
 ## 7. **Thank you note**
 
    I would like to thank all fellow students and the coaches Vanessa and Sam at BeCode.org for any and all helpful information they gave me on this journey.
 
-   A special thanks goes out to @nikolaaswillaert: [Github nikolaas:](https://github.com/nikolaaswillaert/)
+   A special thanks goes out to Nikolaas Willaert who is a co-student @BeCode.org:
 
-   For his time and efforts to sit and debug with me. I learned a lot of tips and tricks from him.
+   For his time and efforts to sit and debug with me. I learned a lot of tips and tricks from him. (and have some simmilar code 😉😉 )  
+
+   <a href="https://github.com/nikolaaswillaert/" target="_blank">Github link for Nikolaas</a>.

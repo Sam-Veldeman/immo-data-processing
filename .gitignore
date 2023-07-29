@@ -165,3 +165,8 @@ immo-model-Sam*
 **/Testbook*
 */app_try.py
 train_save_best_model.py
+pipeline.py
+pipeline_main.py
+models/trained_model.joblib
+models/xgb_model.joblib
+Data/cleaned.csv

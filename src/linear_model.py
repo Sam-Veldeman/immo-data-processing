@@ -48,7 +48,23 @@ def set_Xy(df):
     y = df[['Price']]
     return X, y
 
-def split_data(X, y, df):
+def split_data(X, y):
+    """
+    Splits the data into training and testing sets, performs one-hot encoding and MinMax scaling.
+
+    Parameters:
+        X (pd.DataFrame): Feature variables for training and testing.
+        y (pd.DataFrame): Target variable for training and testing.
+    
+    Returns:
+        X_train (pd.DataFrame): Scaled and encoded feature variables for training.
+        X_test (pd.DataFrame): Scaled and encoded feature variables for testing.
+        y_train (pd.DataFrame): Target variable for training.
+        y_test (pd.DataFrame): Target variable for testing.
+        encoder (OneHotEncoder): The fitted one-hot encoder.
+        scaler (MinMaxScaler): The fitted MinMax scaler.
+    """
+    
     cat_cols= ['Type', 'Postalcode', 'Region', 'Province']
     num_cols= ['Construction_year', 'Total_surface', 'Habitable_surface', 'Bedroom_count', 'Terrace', 'Garden_surface', 'Facades', 'Kitchen_equipped', 'Condition_encoded']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=22)
@@ -57,13 +73,13 @@ def split_data(X, y, df):
     X_train_enc = encoder.fit_transform(X_train[cat_cols])
     X_test_enc = encoder.transform(X_test[cat_cols])
 
-    joblib.dump(encoder, '/users/samve/OneDrive/0BeCode/repos/immo-data-processing/models/encoder.joblib')
+    
 
     scaler = MinMaxScaler()
     X_train_scale = scaler.fit_transform(X_train[num_cols])
     X_test_scale = scaler.transform(X_test[num_cols])
 
-    joblib.dump(scaler, '/users/samve/OneDrive/0BeCode/repos/immo-data-processing/models/scaler.joblib')
+    
 
     encoded_columns = encoder.get_feature_names_out(input_features=cat_cols)
     X_train_enc_df = pd.DataFrame(X_train_enc.toarray(), columns=encoded_columns)
@@ -74,7 +90,7 @@ def split_data(X, y, df):
 
     X_test= X_test_merged.dropna()
     X_train= X_train_merged.dropna()
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, encoder, scaler
 
 def train_model(X_train, y_train, model=1):
     """
@@ -147,35 +163,35 @@ def create_plot(y_test, y_pred):
     Returns:
         fig: Plotly Figure object containing the scatter plot.
     """
-    # Calculate the absolute difference between the price and the predicted price
-    absolute_difference = abs(y_test.flatten() - y_pred)
-    # Create a list to store the colors for the dots based on the condition
-    dot_colors = ['green' if diff < 0.1 * price else 'blue' for price, diff in zip(y_test.flatten(), absolute_difference)]
+    y_test = np.array(y_test)
+    y_pred = np.array(y_pred)
+
     # Create an interactive scatter plot of actual prices vs. predicted prices
     fig = go.Figure()
-    # Add actual prices and predicted prices as scatter plot traces with custom colors
+    # Add actual prices and predicted prices as scatter plot traces with blue dots
     fig.add_trace(go.Scattergl(x=y_test.flatten(),
-                                y=y_pred,
-                                mode='markers',
-                                marker=dict(color=dot_colors, size=8),
-                                name='Predicted vs. Actual Prices',
-                                text=[f'Data Point Index: {i}' for i in np.arange(len(y_test))],
-                                hoverinfo='text+x+y'))
+                               y=y_pred,
+                               mode='markers',
+                               marker=dict(color='blue', size=8),
+                               name='Predicted vs. Actual Prices',
+                               text=[f'Data Point Index: {i}' for i in np.arange(len(y_test))],
+                               hoverinfo='text+x+y'))
     # Add a 1:1 line (y=x) to indicate perfect predictions
     diagonal_line = go.Scatter(x=[min(y_test.flatten()), max(y_test.flatten())],
-                            y=[min(y_test.flatten()), max(y_test.flatten())],
-                            mode='lines',
-                            line=dict(color='red', dash='solid'),
-                            name='Perfect Prediction')
+                               y=[min(y_test.flatten()), max(y_test.flatten())],
+                               mode='lines',
+                               line=dict(color='red', dash='solid'),
+                               name='Perfect Prediction')
     fig.add_trace(diagonal_line)
     # Update layout
     fig.update_layout(title='Actual vs. Predicted Prices (Test Data)',
-                    xaxis_title='Actual Price',
-                    yaxis_title='Predicted Price',
-                    showlegend=True,
-                    hovermode='closest'
-                    )
+                      xaxis_title='Actual Price',
+                      yaxis_title='Predicted Price',
+                      showlegend=True,
+                      hovermode='closest'
+                      )
     return fig
+
 def save_plot(fig):
     """
     Saves the plot as an interactive HTML file.
@@ -186,7 +202,7 @@ def save_plot(fig):
     Returns:
         None
     """
-    output_folder = '../output/'
+    output_folder = './output/'
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     output_file_path = os.path.join(output_folder, 'actual_vs_predicted_scatterplot.html')
@@ -232,26 +248,40 @@ def get_df_input():
                 return df_choice
         print("Invalid input. Please enter 1, 2, or 3.")
 
-def get_save_input(regressor, model_name):
+def get_save_input(regressor, model_name, fig, encoder, scaler):
     """
-    Gets user input for choosing whether to save the plot as an HTML file.
+    Gets user input for choosing whether to save the plot and the model.
 
     Parameters:
+        regressor: Trained machine learning model.
+        model_name (str): Name of the model to be saved (e.g., 'df', 'df_house', 'df_apt').
         fig: Plotly Figure object to be saved.
+        encoder (OneHotEncoder): The fitted one-hot encoder.
+        scaler (MinMaxScaler): The fitted MinMax scaler.
 
     Returns:
         None
     """
-    
     while True:
-        save_choice = input("Do you want to save the model as a pickle file? (y/n): ").lower()
+        save_choice = input("Do you want to save the plot as an HTML file? (y/n): ").lower()
         if save_choice == 'y':
-            save_model(regressor, model_name)
+            save_plot(fig)
             break
         elif save_choice == 'n':
             break
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
+            
+    while True:
+        save_choice = input("Do you want to save the model as a pickle file? (y/n): ").lower()
+        if save_choice == 'y':
+            save_model(regressor, model_name, encoder, scaler)
+            break
+        elif save_choice == 'n':
+            break
+        else:
+            print("Invalid input. Please enter 'y' or 'n'.")
+            
 def select_df(df_input):
     """
     Selects the appropriate DataFrame based on the user's choice.
@@ -277,18 +307,20 @@ def select_df(df_input):
         model_name= 'df_apt'
     return df, model_name
 
-def save_model(regressor, model_name):
+def save_model(regressor, model_name, encoder, scaler):
     """
     Save the trained model to a file using pickle.
 
     Parameters:
         regressor: Trained machine learning model.
         model_name (str): Name of the model to be saved (e.g., 'df', 'df_house', 'df_apt').
+        encoder (OneHotEncoder): The fitted one-hot encoder.
+        scaler (MinMaxScaler): The fitted MinMax scaler.
 
     Returns:
         None
     """
-    save_path = '/users/samve/OneDrive/0BeCode/repos/immo-data-processing/models/'
+    save_path = './models/'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     model_filename = os.path.join(save_path, f"{model_name}.pkl")
@@ -296,7 +328,12 @@ def save_model(regressor, model_name):
     try:
         with open(model_filename, "wb") as file:
             pickle.dump(regressor, file)
-        print(f"Trained {model_name} model saved as: {model_filename}")
+        joblib.dump(encoder, './models/encoder.joblib')
+        joblib.dump(scaler, './models/scaler.joblib')
+        print(f"Trained {model_name} model saved as: {model_filename} in /models")
+        print(f"Trained encoder saved as: encoder.joblib in /models")
+        print(f"Trained scaler model saved as: scaler.joblib in /models")
+        
     except Exception as e:
         print(f"Error saving the model: {e}")
             
@@ -312,10 +349,8 @@ def model(df_input, model=1):
         model (int, optional): Model selection option. 
                                1 - XGBoost (default), 
                                2 - Linear Regression.
-        scaled (bool, optional): Whether to scale the data using MinMaxScaler. Default is True.
 
     Returns:
-        regressor: Trained machine learning model.
         score (float): R-squared score of the model on the test data.
         mse (float): Mean squared error of the model on the test data.
         cv_scores (np.ndarray): Array of cross-validation scores.
@@ -325,10 +360,10 @@ def model(df_input, model=1):
     """
     df, model_name= select_df(df_input)
     X, y = set_Xy(df)
-    X_train, X_test, y_train, y_test= split_data(X, y, df)
+    X_train, X_test, y_train, y_test, encoder, scaler= split_data(X, y)
     regressor = train_model(X_train, y_train, model=model)
     score, mse, y_pred = evaluate_model(regressor, X_test, y_test)
     cv_scores, mean_cv_score, std_cv_score = cross_val(regressor, X_train, y_train)
-    #fig = create_plot(y_test, y_pred)
-    get_save_input(regressor, model_name)
-    return score, mse, cv_scores, mean_cv_score, std_cv_score
+    fig = create_plot(y_test, y_pred)
+    get_save_input(regressor, model_name, fig, encoder, scaler)
+    return score, mse, cv_scores, mean_cv_score, std_cv_score, fig
