@@ -170,3 +170,5 @@ pipeline_main.py
 models/trained_model.joblib
 models/xgb_model.joblib
 Data/cleaned.csv
+/airflow
+/airflow-docker/Dockerfile_old
