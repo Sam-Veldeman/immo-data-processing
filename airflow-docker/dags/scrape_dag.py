@@ -21,6 +21,3 @@ scrape_task = PythonOperator(
     python_callable=run_scrape_task,  # Use the renamed function
     dag=scrape_dag,
 )
-
-if __name__ == "__main__":
-    scrape_dag.cli()

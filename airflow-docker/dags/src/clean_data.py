@@ -256,7 +256,7 @@ def run_cleanup():
     # save the cleaned dataframe to the /data directory
     
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     
-    df = run_cleanup()
+#     df = run_cleanup()
     

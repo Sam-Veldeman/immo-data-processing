@@ -1,8 +1,11 @@
 from pathlib import Path
 import pandas as pd
-import xgboost as xgb
-from sklearn.model_selection import train_test_split
+from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import joblib
 from datetime import datetime
 import os
@@ -29,7 +32,7 @@ def train_model():
         df = pd.read_csv(latest_cleaned_data_csv, index_col='id', skip_blank_lines=True)
     else:
         print("No cleaned_data CSV file found. Please run the cleaning script first.")
-        return
+        return None
 
     # Data preprocessing
     cat_cols = ['type', 'postalcode', 'region', 'province']
@@ -37,47 +40,64 @@ def train_model():
     X = df.drop(columns=['price'], axis=1)
     y = df[['price']]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=22)
-
-    encoder = OneHotEncoder(handle_unknown='ignore')
-    X_train_enc = encoder.fit_transform(X_train[cat_cols])
-    X_test_enc = encoder.transform(X_test[cat_cols])
-
-    scaler = MinMaxScaler()
-    X_train_scale = scaler.fit_transform(X_train[num_cols])
-    X_test_scale = scaler.transform(X_test[num_cols])
-
-    encoded_columns = encoder.get_feature_names_out(input_features=cat_cols)
-    X_train_enc_df = pd.DataFrame(X_train_enc.toarray(), columns=encoded_columns)
-    X_test_enc_df = pd.DataFrame(X_test_enc.toarray(), columns=encoded_columns)
-
-    X_train_merged = pd.concat([pd.DataFrame(X_train_scale, columns=num_cols), X_train_enc_df], axis=1)
-    X_test_merged = pd.concat([pd.DataFrame(X_test_scale, columns=num_cols), X_test_enc_df], axis=1)
-
-    X_test = X_test_merged.dropna()
-    X_train = X_train_merged.dropna()
-
-    # Train the XGBoost model
-    regressor = xgb.XGBRegressor(
-        missing=0,
-        booster='gbtree',
-        objective="reg:squarederror",
-        random_state=123,
-        n_estimators=1000,
-        learning_rate=0.1,
-        max_depth=9,
-        min_child_weight=3,
-        gamma=0.0,
-        colsample_bytree=0.3
-    )
-
-    regressor.fit(X_train, y_train)
     
-    # Save the trained XGBoost model using joblib with a timestamp in the filename
+    transformer = ColumnTransformer(
+        transformers=[
+            ('onehotencoder', OneHotEncoder(handle_unknown='ignore'), cat_cols),
+            ('minmaxscaler', MinMaxScaler(), num_cols)
+        ])
+    # XGBoost model parameters
+    regressor_args = {
+        'missing':0,
+        'booster':'gbtree',
+        'objective':"reg:squarederror",
+        'random_state':123,
+        'n_estimators':1000,
+        'learning_rate':0.1,
+        'max_depth':9,
+        'min_child_weight':3,
+        'gamma':0.0,
+        'colsample_bytree':0.3
+    }
+    # create the pipeline
+    pipeline = Pipeline([
+        ('preprocessor', transformer),
+        ('regressor', XGBRegressor(**regressor_args))
+    ])
+    regressor = pipeline.fit(X_train, y_train)
+    # Perform cross-validation
+    cross_val_scores = cross_val_score(pipeline, X, y, cv=KFold(n_splits=5, shuffle=True, random_state=42),
+                                       scoring='neg_mean_squared_error')
+    
+    # Calculate evaluation metrics for the entire dataset
+    y_pred = pipeline.predict(X)
+    mae = mean_absolute_error(y, y_pred)
+    mse = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    
+    # Save the cross-validation results and evaluation metrics
+    results = {
+        'Cross-Validation MSE Scores': cross_val_scores,
+        'MAE': mae,
+        'MSE': mse,
+        'R2': r2,
+    }
+    
+    results_df = pd.DataFrame(results)
+    
+    
+    # Save the pipeline using joblib with a timestamp in the filename
     current_datetime = datetime.now()
     datestamp = current_datetime.strftime("%Y%m%d%H%M%S")
     model_filename = f'/opt/airflow/dags/models/xgb_model_{datestamp}.joblib'
+    
     joblib.dump(regressor, model_filename)
     print(f"Trained XGBoost model saved as {model_filename}")
+    # Save the cross-validation results and evaluation metrics to a CSV file
+    results_filename = f'/opt/airflow/dags/models/model_results_{datestamp}.csv'
+    results_df.to_csv(results_filename, index=False)
+    print(f"Cross-validation results and evaluation metrics saved as {results_filename}")
+
     return None
 if __name__ == "__main__":
     train_model()

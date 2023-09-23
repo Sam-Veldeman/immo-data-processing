@@ -14,7 +14,7 @@ clean_data_dag = DAG(
 
 # Define a Python function to run the clean_data.py script
 def run_clean_data():
-    df = src.clean_data.run_cleanup()
+    src.clean_data.run_cleanup()
 
 # Create a PythonOperator to run the data cleaning function
 clean_data_task = PythonOperator(
@@ -22,6 +22,3 @@ clean_data_task = PythonOperator(
     python_callable=run_clean_data,
     dag=clean_data_dag,
 )
-
-if __name__ == "__main__":
-    clean_data_dag.cli()

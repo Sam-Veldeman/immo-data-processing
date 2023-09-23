@@ -80,6 +80,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    - ${AIRFLOW_PROJ_DIR:-.}/streamlit:/opt/airflow/streamlit
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -89,6 +90,13 @@ x-airflow-common:
       condition: service_healthy
 
 services:
+  streamlit-app:
+    <<: *airflow-common
+    command: bash -c "streamlit run /opt/airflow/streamlit/app.py"
+    ports:
+      - "8501:8501"  # Forward host port 8501 to container port 8501 for Streamlit
+    depends_on:
+      <<: *airflow-common-depends-on  
   postgres:
     image: postgres:13
     environment:
@@ -150,7 +158,7 @@ services:
 
   airflow-worker:
     <<: *airflow-common
-    command: celery worker
+    command: airflow worker
     healthcheck:
       # yamllint disable rule:line-length
       test:
@@ -280,24 +288,24 @@ services:
   # You can enable flower by adding "--profile flower" option e.g. docker-compose --profile flower up
   # or by explicitly targeted on the command line e.g. docker-compose up flower.
   # See: https://docs.docker.com/compose/profiles/
-  flower:
-    <<: *airflow-common
-    command: celery flower
-    profiles:
-      - flower
-    ports:
-      - "5555:5555"
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    restart: always
-    depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
+  # flower:
+  #   <<: *airflow-common
+  #   command: celery flower
+  #   profiles:
+  #     - flower
+  #   ports:
+  #     - "5555:5555"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 30s
+  #   restart: always
+  #   depends_on:
+  #     <<: *airflow-common-depends-on
+  #     airflow-init:
+  #       condition: service_completed_successfully
 
 volumes:
   postgres-db-volume:

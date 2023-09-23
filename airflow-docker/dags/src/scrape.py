@@ -112,40 +112,29 @@ def get_property(url, session):
     return None, None
 
 # Define a function to get property URLs to scrape
-def get_urls(num_pages, session):
+def get_urls(num_pages, property_type, session):
     list_all_urls = []
-    global URL_COUNT  # Add the global variable for URL count
-    for i in range(1, num_pages + 1):
-        root_url = f"https://www.immoweb.be/en/search/house/for-sale?countries=BE&page={i}&orderBy=relevance"
-        req = session.get(root_url)
-        content = req.content
-        soup1 = BeautifulSoup(content, "html.parser")
-        if req.status_code == 200:
-            # Find all property URLs on the page and add them to the list
-            list_all_urls.extend(tag.get("href") for tag in soup1.find_all("a", attrs={"class": "card__title-link"}))
-            print(f'Urls found: {len(list_all_urls)}', end='\r', flush=True)
-            URL_COUNT = len(list_all_urls)
-        else:
-            print("Page not found")
-            break
-        print(f"Number of properties: {len(list_all_urls)}")
+    global URL_COUNT
 
     for i in range(1, num_pages + 1):
-        root_url = f"https://www.immoweb.be/en/search/apartment/for-sale?countries=BE&page={i}&orderBy=relevance"
+        root_url = f"https://www.immoweb.be/en/search/{property_type}/for-sale?countries=BE&page={i}&orderBy=relevance"
         req = session.get(root_url)
         content = req.content
-        soup2 = BeautifulSoup(content, "html.parser")
+        soup = BeautifulSoup(content, "html.parser")
+
         if req.status_code == 200:
             # Find all property URLs on the page and add them to the list
-            list_all_urls.extend(tag.get("href") for tag in soup2.find_all("a", attrs={"class": "card__title-link"}))
+            list_all_urls.extend(tag.get("href") for tag in soup.find_all("a", attrs={"class": "card__title-link"}))
             print(f'Urls found: {len(list_all_urls)}', end='\r', flush=True)
             URL_COUNT = len(list_all_urls)
         else:
             print("Page not found")
             break
+
         print(f"Number of properties: {len(list_all_urls)}")
 
     return list_all_urls
+
 
 # Define a function to save the scraped data
 def save_data():
@@ -245,19 +234,23 @@ def process_url_wrapper(url):
     process_url(url, session)
 
 def run_scraper(num_pages, num_workers):
-    list_of_urls = get_urls(num_pages, session)
+    house_urls = get_urls(num_pages, "house", session)
+    apartment_urls = get_urls(num_pages, "apartment", session)
+
+    # Combine the lists of URLs
+    list_of_urls = house_urls + apartment_urls
+
     max_threads = min(num_workers, len(list_of_urls))
     with ThreadPoolExecutor(max_workers=max_threads) as executor:
         for _ in executor.map(process_url_wrapper, list_of_urls):
             pass
+
     # Calculate and print the elapsed time
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Script finished in {elapsed_time:.2f} seconds.")
     print(f"\nTotal URLs processed: {COUNTER}, Total URLs found: {URL_COUNT}, Total errors: {ERROR_COUNT}\n")
-    #save the data
+
+    # Save the data
     save_data()
     print(f"\nTotal records: {len(house_details)}\n")
-
-if __name__ == "__main__":
-    run_scraper(2,10)

@@ -128,6 +128,20 @@ docker run property_price_prediction
 
 The render is online on a free subscription so if link does not work, it is offline...
 
+## 4.5 **Airflow Pipeline:**
+
+The airflow pipeline is contained in the docker-airflow folder.
+To run the docker containers and start the pipeline:
+
+Download the folder to your device, navigate to the airflow-docker folder in your terminal and run this command:
+Don't forget to run the docker software! (eg windows: Docker desktop)
+
+```bash
+docker compose up --build
+```
+
+once the image is up and running, open your browser and navigate to <http://localhost:8080>
+
 ## 5.**Timeline**
 
 ### Part 1 of this project was started on 04/07/2023 09:00 and had a deadline set for 11/07/2023 12:30 (4.5 days)
@@ -160,6 +174,21 @@ The render is online on a free subscription so if link does not work, it is offl
 - Be able to deploy a machine learning model.
 - Be able to create an API that can handle a machine learning model.
 - Deploy an API to Render with Docker.
+
+### Part 4 of this project was started on 11/09/2023 09:00 and had a deadline set for 22/09/2023 16:00 (14 days)
+
+## Mission objectives
+
+- Scrape every night all the apartments on sale.
+- Scrape every night all the houses on sale.
+- Make an interactive dashboard to analyze the market.
+- Train a regression model and evaluate its performance.
+
+And the requirements:
+
+- Your datasets need to be versioned.
+- Your models need to be versioned.
+- You will need to apply a different pre-processing for analyzing data and for training models.
 
 ## 6.**Personal notes**
 

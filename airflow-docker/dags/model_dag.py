@@ -21,6 +21,3 @@ train_model_task = PythonOperator(
     python_callable=train_model,
     dag=model_dag,
 )
-
-if __name__ == "__main__":
-    model_dag.cli()
