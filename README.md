@@ -142,6 +142,13 @@ docker compose up --build
 
 once the image is up and running, open your browser and navigate to <http://localhost:8080>
 
+```bash
+login: BeCode
+password: InCodeWeTrust
+```
+
+You should be able to find these credentials in the docker-compose.yml file and adapt it to your needs.
+
 ## 5.**Timeline**
 
 ### Part 1 of this project was started on 04/07/2023 09:00 and had a deadline set for 11/07/2023 12:30 (4.5 days)
