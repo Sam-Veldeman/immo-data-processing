@@ -2,9 +2,9 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from datetime import datetime
-from src import scrape
-from src import clean_data
-from src import model
+import scrape
+import clean_data
+import model
 
 # Define the complete data pipeline DAG
 data_pipeline_dag = DAG(

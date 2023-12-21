@@ -31,8 +31,8 @@ def get_latest_model(data_dir, models_dir):
         return None
 
 # Define the directory containing scraped data CSV files
-data_directory = '/opt/airflow/dags/Data'
-models_directory = '/opt/airflow/dags/models'
+data_directory = '/opt/airflow/Data'
+models_directory = '/opt/airflow/models'
 
 # Get the path to the latest scraped_data CSV file
 latest_scraped_data_csv = get_latest_scraped_data_csv(data_directory)

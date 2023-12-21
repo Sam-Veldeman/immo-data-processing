@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from src.scrape import run_scraper as scrape_function  # Import the scrape.py script
+from scrape import run_scraper as scrape_function  # Import the scrape.py script
 
 # Define the DAG for scrape.py
 scrape_dag = DAG(

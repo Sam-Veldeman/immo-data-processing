@@ -76,8 +76,13 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
-    - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    - ${AIRFLOW_PROJ_DIR:-.}/src:/opt/airflow/plugins
     - ${AIRFLOW_PROJ_DIR:-.}/streamlit:/opt/airflow/streamlit
+    - ${AIRFLOW_PROJ_DIR:-.}/src:/opt/airflow/src
+    - ${AIRFLOW_PROJ_DIR:-.}/Data:/opt/airflow/Data
+    - ${AIRFLOW_PROJ_DIR:-.}/models:/opt/airflow/models
+
+
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -93,7 +98,8 @@ services:
     ports:
       - "8501:8501"  # Forward host port 8501 to container port 8501 for Streamlit
     depends_on:
-      <<: *airflow-common-depends-on  
+      <<: *airflow-common-depends-on
+        
   postgres:
     image: postgres:13
     environment:

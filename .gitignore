@@ -172,3 +172,5 @@ models/xgb_model.joblib
 Data/cleaned.csv
 /airflow
 /airflow-docker/Dockerfile_old
+/Data/*.csv
+/airflow-docker/Data/*.csv

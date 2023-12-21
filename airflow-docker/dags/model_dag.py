@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-import src.model  # Import the model.py script
+import model  # Import the model.py script
 
 # Define the DAG for model.py
 model_dag = DAG(
@@ -13,7 +13,7 @@ model_dag = DAG(
 
 # Define a Python function to run the model.py script
 def train_model():
-    src.model.train_model()
+    model.train_model()
 
 # Create a PythonOperator to run the model training function
 train_model_task = PythonOperator(

@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-import src.clean_data  # Import the clean_data.py script
+import clean_data  # Import the clean_data.py script
 from pathlib import Path
 
 # Define the DAG for clean_data.py
@@ -14,7 +14,7 @@ clean_data_dag = DAG(
 
 # Define a Python function to run the clean_data.py script
 def run_clean_data():
-    src.clean_data.run_cleanup()
+    clean_data.run_cleanup()
 
 # Create a PythonOperator to run the data cleaning function
 clean_data_task = PythonOperator(
